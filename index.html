@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#B71C1C">
+<title>AIP · Colegio 7047 Tacna</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --red:#C62828;--red-d:#8E0000;--red-l:#FFEBEE;--red-m:#E53935;
+  --bg:#F5F5F5;--surface:#FFFFFF;--border:#E0E0E0;
+  --text:#1A1A1A;--text2:#616161;--text3:#9E9E9E;
+  --green:#2E7D32;--green-l:#E8F5E9;
+  --amber:#F57F17;--amber-l:#FFF8E1;
+  --blue:#1565C0;--blue-l:#E3F2FD;
+  --shadow:0 1px 3px rgba(0,0,0,0.12),0 1px 2px rgba(0,0,0,0.08);
+  --shadow-md:0 4px 12px rgba(0,0,0,0.15);
+  --r:12px;--r-sm:8px;--r-lg:16px;
+}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+
+/* HEADER */
+.app-header{background:var(--red);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,0.3);position:relative;z-index:10}
+.logo-shield{width:40px;height:40px;flex-shrink:0}
+.header-text{flex:1;min-width:0}
+.header-text h1{font-size:0.88rem;font-weight:700;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.header-text p{font-size:0.72rem;opacity:0.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* SCROLL AREA */
+.app-body{flex:1;overflow-y:auto;overflow-x:hidden;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;padding-bottom:80px}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;z-index:50;box-shadow:0 -2px 8px rgba(0,0,0,0.1);padding-bottom:env(safe-area-inset-bottom)}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px 6px;border:none;background:none;cursor:pointer;color:var(--text3);font-size:0.62rem;font-family:inherit;font-weight:500;transition:color .15s}
+.nav-btn.active{color:var(--red)}
+.nav-icon{font-size:1.35rem;line-height:1}
+
+/* PAGES */
+.page{display:none;padding:16px;animation:fadeIn .2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS */
+.card{background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;margin-bottom:12px}
+.card-title{font-size:0.88rem;font-weight:700;color:var(--red-d);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+
+/* QUICK LINKS */
+.links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:4px}
+.quick-link{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px 8px;background:var(--surface);border-radius:var(--r);box-shadow:var(--shadow);text-decoration:none;color:var(--text);border:1px solid var(--border);text-align:center;min-height:80px;cursor:pointer;transition:all .15s}
+.quick-link:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.ql-icon{font-size:1.6rem;line-height:1}
+.ql-label{font-size:0.72rem;font-weight:600;color:var(--text);line-height:1.3}
+
+/* FILES */
+.files-list{display:flex;flex-direction:column;gap:8px}
+.file-item{display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface);border-radius:var(--r-sm);border:1px solid var(--border);text-decoration:none;color:var(--text);font-size:0.82rem;transition:background .12s}
+.file-item:hover{background:var(--blue-l)}
+.file-icon{font-size:1.3rem;flex-shrink:0}
+.file-info{flex:1;min-width:0}
+.file-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file-meta{font-size:0.72rem;color:var(--text3);margin-top:2px}
+
+/* SCHEDULE */
+.week-nav{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.week-nav button{background:none;border:1px solid var(--border);border-radius:var(--r-sm);padding:6px 12px;font-size:0.8rem;font-family:inherit;cursor:pointer;color:var(--text);transition:all .15s}
+.week-nav button:hover{background:var(--red-l);border-color:var(--red);color:var(--red-d)}
+.week-label{flex:1;text-align:center;font-size:0.78rem;font-weight:600;color:var(--text)}
+.day-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none}
+.day-tabs::-webkit-scrollbar{display:none}
+.day-tab{flex-shrink:0;padding:7px 14px;border-radius:20px;font-size:0.78rem;font-weight:600;cursor:pointer;border:none;background:var(--bg);color:var(--text2);transition:all .15s;font-family:inherit}
+.day-tab.active{background:var(--red);color:#fff}
+
+/* PERIOD ROWS */
+.period-list{display:flex;flex-direction:column;gap:6px}
+.period-row{display:flex;align-items:stretch;gap:0;border-radius:var(--r-sm);overflow:hidden;border:1px solid var(--border);background:var(--surface)}
+.period-time{background:var(--bg);padding:10px 8px;font-size:0.68rem;font-weight:600;color:var(--text3);text-align:center;width:58px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.3;border-right:1px solid var(--border)}
+.period-slot{flex:1;padding:12px 14px;cursor:pointer;transition:background .12s;position:relative;min-height:60px;display:flex;flex-direction:column;justify-content:center}
+.period-slot.free{background:var(--green-l)}
+.period-slot.free:hover{background:#C8E6C9}
+.period-slot.taken{background:var(--red-l);cursor:default}
+.period-slot.break-slot{background:#F5F5F5;cursor:default;align-items:center}
+.period-slot.break-slot p{font-size:0.75rem;color:var(--text3);font-style:italic}
+.slot-free-label{font-size:0.8rem;font-weight:600;color:var(--green)}
+.slot-teacher{font-size:0.85rem;font-weight:700;color:var(--red-d)}
+.slot-section{font-size:0.73rem;color:var(--red-m);margin-top:3px}
+.slot-del-btn{margin-top:6px;background:none;border:1px solid rgba(198,40,40,0.3);color:var(--red-d);border-radius:4px;padding:3px 8px;font-size:0.68rem;cursor:pointer;font-family:inherit;align-self:flex-start}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:0.72rem;color:var(--text3)}
+.leg-item{display:flex;align-items:center;gap:5px}
+.leg-dot{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+/* MODALS */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;align-items:flex-end;justify-content:center;padding:0}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border-radius:var(--r-lg) var(--r-lg) 0 0;padding:20px 20px calc(20px + env(safe-area-inset-bottom));width:100%;max-width:500px;max-height:90vh;overflow-y:auto;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.modal h2{font-size:1rem;font-weight:700;color:var(--red-d);margin-bottom:4px}
+.modal-sub{font-size:0.8rem;color:var(--text2);margin-bottom:16px;padding:10px 12px;background:var(--bg);border-radius:var(--r-sm);border-left:3px solid var(--red)}
+.modal label{display:block;font-size:0.8rem;font-weight:600;margin-bottom:5px;color:var(--text)}
+.modal input,.modal select,.modal textarea{width:100%;border:1.5px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;font-size:0.88rem;font-family:inherit;margin-bottom:12px;color:var(--text);background:var(--surface);-webkit-appearance:none;appearance:none}
+.modal input:focus,.modal select:focus,.modal textarea:focus{outline:none;border-color:var(--red)}
+.modal textarea{resize:none;height:80px}
+.modal-warn{background:var(--amber-l);border:1px solid #FFCC80;border-radius:var(--r-sm);padding:10px 12px;font-size:0.75rem;color:#7B4A00;margin-bottom:14px;line-height:1.5}
+.modal-btns{display:flex;gap:10px;margin-top:4px}
+.btn{border:none;border-radius:var(--r-sm);padding:11px 18px;font-size:0.85rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all .15s;flex:1}
+.btn-primary{background:var(--red);color:#fff}
+.btn-primary:active{background:var(--red-d)}
+.btn-secondary{background:var(--bg);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:active{background:var(--border)}
+.btn-danger{background:var(--red-d);color:#fff}
+.btn-danger:active{background:#5D0000}
+
+/* ADMIN */
+.pin-area{text-align:center;padding:10px 0 20px}
+.pin-area input{width:100%;border:2px solid var(--border);border-radius:var(--r);padding:14px;font-size:1.4rem;font-family:inherit;text-align:center;letter-spacing:8px;margin-bottom:12px;color:var(--text);background:var(--surface)}
+.pin-area input:focus{outline:none;border-color:var(--red)}
+.admin-res-list{display:flex;flex-direction:column;gap:8px}
+.admin-res-item{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 12px}
+.admin-res-badge{background:var(--red-l);color:var(--red-d);border-radius:6px;padding:3px 8px;font-size:0.68rem;font-weight:700;white-space:nowrap;flex-shrink:0}
+.admin-res-info{flex:1;min-width:0}
+.admin-res-name{font-size:0.82rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-res-meta{font-size:0.7rem;color:var(--text3);margin-top:2px}
+.admin-res-del{background:none;border:1px solid rgba(198,40,40,0.3);color:var(--red-d);border-radius:6px;padding:5px 10px;font-size:0.72rem;font-weight:600;cursor:pointer;flex-shrink:0;font-family:inherit}
+.admin-res-del:active{background:var(--red-l)}
+
+/* SECTION HEADER */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.section-header h2{font-size:0.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+.add-btn{background:var(--red);color:#fff;border:none;border-radius:20px;padding:6px 14px;font-size:0.75rem;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:4px}
+.add-btn:active{background:var(--red-d)}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:32px 16px;color:var(--text3);font-size:0.85rem}
+.es-icon{font-size:2.5rem;margin-bottom:10px}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(70px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;padding:10px 20px;border-radius:20px;font-size:0.82rem;font-weight:500;z-index:300;opacity:0;transition:all .3s ease;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{background:var(--green)}
+.toast.err{background:var(--red-d)}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <svg class="logo-shield" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="20" cy="20" r="19" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.4)" stroke-width="1"/>
+    <path d="M20 4 L32 14 L32 30 L20 36 L8 30 L8 14 Z" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+    <text x="20" y="22" text-anchor="middle" font-family="serif" font-size="8" font-weight="bold" fill="white">7047</text>
+    <text x="20" y="29" text-anchor="middle" font-family="sans-serif" font-size="4.5" fill="rgba(255,255,255,0.8)">TACNA</text>
+  </svg>
+  <div class="header-text">
+    <h1>Colegio Centenario "7047 Tacna"</h1>
+    <p>Aula de Innovaciones Pedagógicas</p>
+  </div>
+</header>
+
+<div class="app-body" id="app-body">
+
+  <!-- INICIO -->
+  <div class="page active" id="page-inicio">
+    <div class="section-header">
+      <h2>🔗 Acceso rápido</h2>
+      <button class="add-btn" onclick="requireAdmin(openAddLink)">+ Agregar</button>
+    </div>
+    <div class="links-grid" id="links-grid"></div>
+
+    <div class="section-header" style="margin-top:16px"><h2>📋 Información del aula</h2></div>
+
+    <div class="card" style="border-left:4px solid var(--red)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="font-size:1.8rem">💡</span>
+        <div>
+          <div style="font-size:0.9rem;font-weight:700">Reserva el Aula de Innovaciones</div>
+          <div style="font-size:0.75rem;color:var(--text2);margin-top:2px">Ve a <strong>Horario</strong> en el menú de abajo, elige el día y toca el turno que quieres reservar.</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:0.75rem">
+        <div style="background:var(--bg);border-radius:var(--r-sm);padding:10px"><div style="font-weight:700;margin-bottom:3px">⏰ Horario</div><div style="color:var(--text2)">Lun – Vie<br>7:30 am – 3:00 pm</div></div>
+        <div style="background:var(--bg);border-radius:var(--r-sm);padding:10px"><div style="font-weight:700;margin-bottom:3px">⚠️ Límite</div><div style="color:var(--text2)">Máx. 2 horas<br>por sección/semana</div></div>
+        <div style="background:var(--bg);border-radius:var(--r-sm);padding:10px"><div style="font-weight:700;margin-bottom:3px">📍 Dirección</div><div style="color:var(--text2)">Jr. García García 140<br>Barranco</div></div>
+        <div style="background:var(--bg);border-radius:var(--r-sm);padding:10px"><div style="font-weight:700;margin-bottom:3px">📞 Contacto</div><div style="color:var(--text2)">(01) 266 2333<br>WhatsApp: 993 521 254</div></div>
+      </div>
+    </div>
+
+    <div class="card" style="background:var(--red);color:#fff;display:flex;align-items:center;gap:14px;padding:14px 16px">
+      <div style="font-size:2rem;font-weight:700;line-height:1" id="free-count">—</div>
+      <div style="flex:1">
+        <div style="font-size:0.85rem;font-weight:600">turnos libres esta semana</div>
+        <div style="font-size:0.72rem;opacity:0.85">Toca Horario para reservar tu turno</div>
+      </div>
+      <button onclick="showPage('horario')" style="background:rgba(255,255,255,0.25);border:none;color:#fff;border-radius:8px;padding:8px 14px;font-size:0.78rem;font-weight:600;font-family:inherit;cursor:pointer">Ver →</button>
+    </div>
+  </div>
+
+  <!-- HORARIO -->
+  <div class="page" id="page-horario">
+    <div class="week-nav">
+      <button onclick="changeWeek(-1)">◀ Anterior</button>
+      <span class="week-label" id="week-label"></span>
+      <button onclick="changeWeek(1)">Siguiente ▶</button>
+    </div>
+    <div class="day-tabs" id="day-tabs"></div>
+    <div class="period-list" id="period-list"></div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:#E8F5E9;border:1px solid #A5D6A7"></div>Disponible</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#FFEBEE;border:1px solid #EF9A9A"></div>Ocupado</div>
+      <div class="leg-item"><div class="leg-dot" style="background:#F5F5F5;border:1px solid #E0E0E0"></div>Recreo</div>
+    </div>
+  </div>
+
+  <!-- ARCHIVOS -->
+  <div class="page" id="page-archivos">
+    <div class="section-header">
+      <h2>📁 Recursos compartidos</h2>
+      <button class="add-btn" onclick="requireAdmin(openAddFile)">+ Agregar</button>
+    </div>
+    <p style="font-size:0.78rem;color:var(--text3);margin-bottom:14px">Links a archivos, Google Drive, YouTube u otros recursos que el Prof. José Antonio comparte con los estudiantes.</p>
+    <div id="files-container"></div>
+  </div>
+
+  <!-- NORMAS -->
+  <div class="page" id="page-normas">
+    <div class="card">
+      <div class="card-title">📋 Normas de uso — Aula AIP</div>
+      <div style="display:flex;flex-direction:column;gap:12px;font-size:0.85rem;line-height:1.5">
+        <div style="display:flex;gap:10px;align-items:flex-start"><div style="background:var(--red);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;margin-top:1px">1</div><div>Solo se puede reservar en los turnos <strong>disponibles</strong>. Los turnos ocupados no se pueden reemplazar.</div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><div style="background:var(--red);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;margin-top:1px">2</div><div>Máximo <strong>2 horas seguidas</strong> por sección por semana, para dar oportunidad a todos los colegas.</div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><div style="background:var(--red);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;margin-top:1px">3</div><div>Ingresa tu <strong>nombre completo</strong> y selecciona el grado y sección. La reserva se registra al instante.</div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><div style="background:var(--red);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;margin-top:1px">4</div><div>Solo el <strong>Prof. José Antonio</strong> puede eliminar o modificar reservas. Para cancelar, contáctalo por WhatsApp.</div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><div style="background:var(--red);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;margin-top:1px">5</div><div>Los <strong>recreos</strong> (9:00–9:15 y 12:15–12:45) no son reservables.</div></div>
+        <div style="display:flex;gap:10px;align-items:flex-start"><div style="background:var(--red);color:#fff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;margin-top:1px">6</div><div>Dejar el aula en orden y reportar cualquier equipo dañado al encargado.</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">👨‍💻 Coordinador AIP</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:48px;height:48px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#fff;font-weight:700;flex-shrink:0">JA</div>
+        <div>
+          <div style="font-weight:700;font-size:0.9rem">Prof. José Antonio</div>
+          <div style="font-size:0.78rem;color:var(--text2)">Docente del Aula de Innovaciones</div>
+          <a href="https://wa.link/9o906w" style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;background:#25D366;color:#fff;border-radius:6px;padding:6px 14px;text-decoration:none;font-size:0.75rem;font-weight:600">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.125.557 4.126 1.534 5.862L.057 23.85a.5.5 0 00.609.61l6.099-1.598A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.94 9.94 0 01-5.073-1.39l-.363-.216-3.763.985.993-3.651-.237-.376A9.958 9.958 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
+            993 521 254
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN -->
+  <div class="page" id="page-admin">
+    <div id="admin-login-area">
+      <div class="card">
+        <div class="card-title">🔒 Acceso Administrador</div>
+        <p style="font-size:0.82rem;color:var(--text2);margin-bottom:16px">Solo para el Prof. José Antonio. Ingresa el PIN para gestionar reservas, links y recursos.</p>
+        <div class="pin-area">
+          <input type="password" id="pin-input" placeholder="••••" maxlength="8" inputmode="numeric" onkeydown="if(event.key==='Enter')checkPin()">
+          <button class="btn btn-primary" onclick="checkPin()">Entrar al panel</button>
+          <p id="pin-err" style="color:var(--red-d);font-size:0.78rem;margin-top:8px;display:none">❌ PIN incorrecto. Intenta de nuevo.</p>
+        </div>
+      </div>
+    </div>
+    <div id="admin-panel" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-size:0.85rem;font-weight:600">👋 Hola, <span style="color:var(--red-d)">Prof. José Antonio</span></div>
+        <button onclick="logout()" style="background:none;border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:0.75rem;font-family:inherit;cursor:pointer;color:var(--text2)">Salir</button>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div class="card-title" style="margin-bottom:0">🔗 Links de acceso rápido</div>
+          <button class="add-btn" onclick="openAddLink()">+ Agregar</button>
+        </div>
+        <div id="admin-links-list"></div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div class="card-title" style="margin-bottom:0">📁 Recursos para estudiantes</div>
+          <button class="add-btn" onclick="openAddFile()">+ Agregar</button>
+        </div>
+        <div id="admin-files-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📅 Todas las reservas</div>
+        <div id="admin-res-list"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app-body -->
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-inicio" onclick="showPage('inicio')"><span class="nav-icon">🏠</span>Inicio</button>
+  <button class="nav-btn" id="nav-horario" onclick="showPage('horario')"><span class="nav-icon">📅</span>Horario</button>
+  <button class="nav-btn" id="nav-archivos" onclick="showPage('archivos')"><span class="nav-icon">📁</span>Recursos</button>
+  <button class="nav-btn" id="nav-normas" onclick="showPage('normas')"><span class="nav-icon">📋</span>Normas</button>
+  <button class="nav-btn" id="nav-admin" onclick="showPage('admin')"><span class="nav-icon">🔒</span>Admin</button>
+</nav>
+
+<!-- MODAL: Reservar -->
+<div class="overlay" id="modal-reservar">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Reservar turno</h2>
+    <div class="modal-sub" id="modal-reservar-info"></div>
+    <div class="modal-warn">⚠️ <strong>Recuerda:</strong> máximo 2 horas por grado y sección por semana. Solo el Prof. José Antonio puede cancelar reservas.</div>
+    <label>Tu nombre completo</label>
+    <input type="text" id="res-name" placeholder="Ej: María Quispe Flores" maxlength="60" autocomplete="off">
+    <label>Grado</label>
+    <select id="res-grade">
+      <option value="">— Selecciona el grado —</option>
+      <option>1° Secundaria</option>
+      <option>2° Secundaria</option>
+      <option>3° Secundaria</option>
+      <option>4° Secundaria</option>
+      <option>5° Secundaria</option>
+    </select>
+    <label>Sección</label>
+    <select id="res-section">
+      <option value="">— Selecciona la sección —</option>
+      <option>A</option><option>B</option><option>C</option>
+      <option>D</option><option>E</option><option>F</option>
+    </select>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closeModal('modal-reservar')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmReserva()">✅ Confirmar reserva</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Eliminar reserva -->
+<div class="overlay" id="modal-delete">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Eliminar reserva</h2>
+    <div class="modal-sub" id="modal-delete-info"></div>
+    <p style="font-size:0.85rem;color:var(--text2);margin-bottom:18px">¿Confirmas la eliminación? Esta acción no se puede deshacer.</p>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closeModal('modal-delete')">Cancelar</button>
+      <button class="btn btn-danger" onclick="confirmDelete()">🗑️ Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Agregar link -->
+<div class="overlay" id="modal-add-link">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Agregar link de acceso rápido</h2>
+    <p style="font-size:0.8rem;color:var(--text2);margin-bottom:14px">Aparecerá en la pantalla de inicio para todos los que usen esta página.</p>
+    <label>Nombre del link</label>
+    <input type="text" id="link-name" placeholder="Ej: Google Classroom" maxlength="40">
+    <label>URL (dirección web)</label>
+    <input type="url" id="link-url" placeholder="https://..." autocomplete="off">
+    <label>Ícono emoji (opcional)</label>
+    <input type="text" id="link-emoji" placeholder="Ej: 📚  🎓  🌐" maxlength="4">
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-link')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmAddLink()">Guardar link</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Agregar archivo -->
+<div class="overlay" id="modal-add-file">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Agregar recurso / archivo</h2>
+    <p style="font-size:0.8rem;color:var(--text2);margin-bottom:14px">Pega el link de Google Drive, YouTube, Canva, o cualquier URL pública.</p>
+    <label>Nombre del recurso</label>
+    <input type="text" id="file-name" placeholder="Ej: Ejercicios de Matemática – 3° A" maxlength="60">
+    <label>URL del recurso</label>
+    <input type="url" id="file-url" placeholder="https://drive.google.com/..." autocomplete="off">
+    <label>Descripción corta (opcional)</label>
+    <textarea id="file-desc" placeholder="Ej: Material para la semana 12. Para todos los grados."></textarea>
+    <label>Ícono emoji (opcional)</label>
+    <input type="text" id="file-emoji" placeholder="Ej: 📄  📹  🎨" maxlength="4">
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="closeModal('modal-add-file')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmAddFile()">Guardar recurso</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== CONFIG =====
+const ADMIN_PIN = "7047"; // ← Cambia aquí tu PIN secreto
+
+const DAYS = ["Lunes","Martes","Miércoles","Jueves","Viernes"];
+
+const PERIODS = [
+  {id:"p1", short:"1ª hora", time:"7:30 – 8:15", isBreak:false},
+  {id:"p2", short:"2ª hora", time:"8:15 – 9:00", isBreak:false},
+  {id:"b1", short:"Recreo", time:"9:00 – 9:15", isBreak:true, label:"☕ Recreo"},
+  {id:"p3", short:"3ª hora", time:"9:15 – 10:00", isBreak:false},
+  {id:"p4", short:"4ª hora", time:"10:00 – 10:45", isBreak:false},
+  {id:"p5", short:"5ª hora", time:"10:45 – 11:30", isBreak:false},
+  {id:"p6", short:"6ª hora", time:"11:30 – 12:15", isBreak:false},
+  {id:"b2", short:"Almuerzo", time:"12:15 – 12:45", isBreak:true, label:"🍽️ Recreo / Almuerzo"},
+  {id:"p7", short:"7ª hora", time:"12:45 – 13:30", isBreak:false},
+  {id:"p8", short:"8ª hora", time:"13:30 – 14:15", isBreak:false},
+  {id:"p9", short:"9ª hora", time:"14:15 – 15:00", isBreak:false},
+];
+
+// ===== STATE =====
+let adminOn = false;
+let weekOffset = 0;
+let dayIdx = 0;
+let reservations = {};
+let quickLinks = [];
+let sharedFiles = [];
+let pendingSlotKey = null;
+let pendingDeleteKey = null;
+let pendingAdminCallback = null;
+
+// ===== STORAGE =====
+function load() {
+  try {
+    const d = localStorage.getItem("aip_v3");
+    if (d) { const p = JSON.parse(d); reservations = p.r||{}; quickLinks = p.ql||[]; sharedFiles = p.sf||[]; }
+  } catch(e) {}
+  if (quickLinks.length === 0) {
+    quickLinks = [
+      {id:uid(),name:"Google",url:"https://www.google.com",emoji:"🔍"},
+      {id:uid(),name:"YouTube",url:"https://www.youtube.com",emoji:"▶️"},
+      {id:uid(),name:"Google Drive",url:"https://drive.google.com",emoji:"📂"},
+      {id:uid(),name:"Classroom",url:"https://classroom.google.com",emoji:"🎓"},
+    ];
+    save();
+  }
+}
+function save() { localStorage.setItem("aip_v3", JSON.stringify({r:reservations,ql:quickLinks,sf:sharedFiles})); }
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+// ===== NAVIGATION =====
+function showPage(name) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("page-"+name).classList.add("active");
+  document.getElementById("nav-"+name).classList.add("active");
+  document.getElementById("app-body").scrollTop = 0;
+  if (name==="inicio") { renderLinks(); updateFreeCount(); }
+  if (name==="horario") renderSchedule();
+  if (name==="archivos") renderFiles();
+  if (name==="admin") renderAdminPanel();
+}
+
+// ===== WEEK UTILS =====
+function weekStart(off) {
+  const n = new Date(); const dy = n.getDay();
+  const diff = n.getDate() - dy + (dy===0?-6:1);
+  const m = new Date(n.setDate(diff + off*7)); m.setHours(0,0,0,0); return m;
+}
+function weekKey(off) { return weekStart(off).toISOString().split("T")[0]; }
+function weekLabel(off) {
+  const s = weekStart(off); const e = new Date(s); e.setDate(e.getDate()+4);
+  const f = d => d.toLocaleDateString("es-PE",{day:"numeric",month:"short"});
+  if (off===0) return "Esta semana · "+f(s)+" – "+f(e);
+  if (off===-1) return "Semana pasada · "+f(s)+" – "+f(e);
+  if (off===1) return "Próxima semana · "+f(s)+" – "+f(e);
+  return f(s)+" – "+f(e);
+}
+function changeWeek(d) { weekOffset += d; renderSchedule(); }
+function slotKey(di, pid) { return weekKey(weekOffset)+"|"+di+"|"+pid; }
+
+// ===== FREE COUNT =====
+function updateFreeCount() {
+  const wk = weekKey(0);
+  const total = 5 * PERIODS.filter(p=>!p.isBreak).length;
+  const taken = Object.keys(reservations).filter(k=>k.startsWith(wk+"|")).length;
+  document.getElementById("free-count").textContent = total - taken;
+}
+
+// ===== SCHEDULE =====
+function renderSchedule() {
+  document.getElementById("week-label").textContent = weekLabel(weekOffset);
+  const tabs = document.getElementById("day-tabs");
+  tabs.innerHTML = DAYS.map((d,i)=>`<button class="day-tab ${i===dayIdx?"active":""}" onclick="setDay(${i})">${d}</button>`).join("");
+  renderDay();
+}
+
+function setDay(i) {
+  dayIdx = i;
+  document.querySelectorAll(".day-tab").forEach((t,idx)=>t.classList.toggle("active",idx===i));
+  renderDay();
+}
+
+function renderDay() {
+  const list = document.getElementById("period-list");
+  list.innerHTML = "";
+  PERIODS.forEach(p => {
+    const row = document.createElement("div");
+    row.className = "period-row";
+
+    const timeDiv = document.createElement("div");
+    timeDiv.className = "period-time";
+    timeDiv.innerHTML = `<span style="font-weight:700;font-size:0.7rem">${p.short.replace(" hora"," hr")}</span><span style="margin-top:2px">${p.time.replace(" – ","–")}</span>`;
+
+    const slot = document.createElement("div");
+    slot.className = "period-slot";
+
+    if (p.isBreak) {
+      slot.classList.add("break-slot");
+      slot.innerHTML = `<p>${p.label}</p>`;
+    } else {
+      const key = slotKey(dayIdx, p.id);
+      const res = reservations[key];
+      if (res) {
+        slot.classList.add("taken");
+        slot.innerHTML = `
+          <div class="slot-teacher">👤 ${esc(res.teacher)}</div>
+          <div class="slot-section">📚 ${esc(res.grade)} – Sección ${esc(res.section)}</div>
+          ${adminOn ? `<button class="slot-del-btn" onclick="openDelete('${key}',event)">✕ Eliminar reserva</button>` : ""}
+        `;
+      } else {
+        slot.classList.add("free");
+        slot.innerHTML = `<span class="slot-free-label">✅ Disponible — toca para reservar</span>`;
+        slot.onclick = () => openReservar(dayIdx, p.id, p);
+      }
+    }
+
+    row.appendChild(timeDiv);
+    row.appendChild(slot);
+    list.appendChild(row);
+  });
+}
+
+// ===== RESERVE =====
+function openReservar(di, pid, period) {
+  pendingSlotKey = slotKey(di, pid);
+  document.getElementById("modal-reservar-info").innerHTML =
+    `<strong>${DAYS[di]}</strong> · ${period.short} · ${period.time}<br>Semana: ${weekLabel(weekOffset)}`;
+  document.getElementById("res-name").value = "";
+  document.getElementById("res-grade").value = "";
+  document.getElementById("res-section").value = "";
+  openModal("modal-reservar");
+  setTimeout(()=>document.getElementById("res-name").focus(), 300);
+}
+
+function confirmReserva() {
+  const name = document.getElementById("res-name").value.trim();
+  const grade = document.getElementById("res-grade").value;
+  const section = document.getElementById("res-section").value;
+  if (!name) { toast("Escribe tu nombre completo","err"); return; }
+  if (!grade) { toast("Selecciona el grado","err"); return; }
+  if (!section) { toast("Selecciona la sección","err"); return; }
+
+  if (reservations[pendingSlotKey]) {
+    toast("Ese turno ya fue ocupado, elige otro","err");
+    closeModal("modal-reservar"); renderDay(); return;
+  }
+
+  const wk = weekKey(weekOffset);
+  const count = Object.entries(reservations).filter(([k,v])=>
+    k.startsWith(wk+"|") &&
+    v.teacher.toLowerCase()===name.toLowerCase() &&
+    v.grade===grade && v.section===section
+  ).length;
+  if (count >= 2) { toast("Ya tienes 2 reservas con ese grado/sección esta semana","err"); return; }
+
+  reservations[pendingSlotKey] = {teacher:name,grade,section,ts:Date.now()};
+  save();
+  closeModal("modal-reservar");
+  renderDay();
+  updateFreeCount();
+  toast("✅ Reserva confirmada para "+name,"ok");
+}
+
+// ===== DELETE =====
+function openDelete(key, evt) {
+  if (!adminOn) return;
+  evt && evt.stopPropagation();
+  const res = reservations[key];
+  if (!res) return;
+  pendingDeleteKey = key;
+  const parts = key.split("|");
+  const period = PERIODS.find(p=>p.id===parts[2]);
+  document.getElementById("modal-delete-info").innerHTML =
+    `<strong>${esc(res.teacher)}</strong> · ${esc(res.grade)} – Sección ${esc(res.section)}<br>${DAYS[parseInt(parts[1])]} · ${period?period.time:""}`;
+  openModal("modal-delete");
+}
+
+function confirmDelete() {
+  if (!pendingDeleteKey || !reservations[pendingDeleteKey]) return;
+  const res = reservations[pendingDeleteKey];
+  delete reservations[pendingDeleteKey];
+  save();
+  closeModal("modal-delete");
+  renderDay();
+  renderAdminPanel();
+  updateFreeCount();
+  toast("🗑️ Reserva de "+res.teacher+" eliminada","ok");
+}
+
+// ===== QUICK LINKS =====
+function renderLinks() {
+  const grid = document.getElementById("links-grid");
+  if (!grid) return;
+  if (quickLinks.length === 0) {
+    grid.innerHTML = `<div style="font-size:0.8rem;color:var(--text3);padding:16px">No hay links aún. El administrador puede agregar desde Admin → Links.</div>`;
+    return;
+  }
+  grid.innerHTML = quickLinks.map(l=>`
+    <a class="quick-link" href="${esc(l.url)}" target="_blank" rel="noopener">
+      <span class="ql-icon">${l.emoji||"🔗"}</span>
+      <span class="ql-label">${esc(l.name)}</span>
+    </a>
+  `).join("");
+}
+
+function openAddLink() {
+  document.getElementById("link-name").value="";
+  document.getElementById("link-url").value="";
+  document.getElementById("link-emoji").value="";
+  openModal("modal-add-link");
+  setTimeout(()=>document.getElementById("link-name").focus(),300);
+}
+
+function confirmAddLink() {
+  const name = document.getElementById("link-name").value.trim();
+  const url = document.getElementById("link-url").value.trim();
+  const emoji = document.getElementById("link-emoji").value.trim();
+  if (!name) { toast("Escribe el nombre del link","err"); return; }
+  if (!url || !url.startsWith("http")) { toast("Ingresa una URL válida (https://...)","err"); return; }
+  quickLinks.push({id:uid(),name,url,emoji:emoji||"🔗"});
+  save(); closeModal("modal-add-link");
+  renderLinks(); renderAdminPanel();
+  toast("✅ Link agregado","ok");
+}
+
+// ===== FILES =====
+function renderFiles() {
+  const c = document.getElementById("files-container");
+  if (!c) return;
+  if (sharedFiles.length === 0) {
+    c.innerHTML = `<div class="empty-state"><div class="es-icon">📭</div><div>No hay recursos compartidos aún.</div><div style="margin-top:6px;font-size:0.75rem">El Prof. José Antonio los agrega desde el panel Admin → Recursos.</div></div>`;
+    return;
+  }
+  c.innerHTML = `<div class="files-list">` +
+    sharedFiles.map(f=>`
+      <a class="file-item" href="${esc(f.url)}" target="_blank" rel="noopener">
+        <span class="file-icon">${f.emoji||"📄"}</span>
+        <div class="file-info">
+          <div class="file-name">${esc(f.name)}</div>
+          ${f.desc?`<div class="file-meta">${esc(f.desc)}</div>`:""}
+        </div>
+        <span style="font-size:0.75rem;color:var(--blue);font-weight:600;flex-shrink:0">Abrir →</span>
+      </a>
+    `).join("") + `</div>`;
+}
+
+function openAddFile() {
+  document.getElementById("file-name").value="";
+  document.getElementById("file-url").value="";
+  document.getElementById("file-desc").value="";
+  document.getElementById("file-emoji").value="";
+  openModal("modal-add-file");
+  setTimeout(()=>document.getElementById("file-name").focus(),300);
+}
+
+function confirmAddFile() {
+  const name = document.getElementById("file-name").value.trim();
+  const url = document.getElementById("file-url").value.trim();
+  const desc = document.getElementById("file-desc").value.trim();
+  const emoji = document.getElementById("file-emoji").value.trim();
+  if (!name) { toast("Escribe el nombre del recurso","err"); return; }
+  if (!url || !url.startsWith("http")) { toast("Ingresa una URL válida (https://...)","err"); return; }
+  sharedFiles.push({id:uid(),name,url,desc,emoji:emoji||"📄"});
+  save(); closeModal("modal-add-file");
+  renderFiles(); renderAdminPanel();
+  toast("✅ Recurso agregado","ok");
+}
+
+// ===== ADMIN =====
+function requireAdmin(callback) {
+  if (adminOn) { callback(); return; }
+  pendingAdminCallback = callback;
+  showPage("admin");
+  toast("Primero ingresa como administrador 🔒","");
+}
+
+function checkPin() {
+  const v = document.getElementById("pin-input").value;
+  if (v === ADMIN_PIN) {
+    adminOn = true;
+    document.getElementById("admin-login-area").style.display = "none";
+    document.getElementById("admin-panel").style.display = "block";
+    document.getElementById("pin-input").value = "";
+    document.getElementById("pin-err").style.display = "none";
+    renderAdminPanel();
+    if (pendingAdminCallback) { const cb = pendingAdminCallback; pendingAdminCallback = null; cb(); }
+    toast("✅ Bienvenido, Prof. José Antonio","ok");
+  } else {
+    document.getElementById("pin-err").style.display = "block";
+    document.getElementById("pin-input").value = "";
+  }
+}
+
+function logout() {
+  adminOn = false;
+  document.getElementById("admin-login-area").style.display = "block";
+  document.getElementById("admin-panel").style.display = "none";
+  renderDay();
+  toast("Sesión cerrada","");
+}
+
+function renderAdminPanel() {
+  if (!adminOn) return;
+
+  // Links
+  const al = document.getElementById("admin-links-list");
+  if (al) {
+    al.innerHTML = quickLinks.length === 0
+      ? `<div style="font-size:0.8rem;color:var(--text3)">Sin links. Toca + Agregar.</div>`
+      : `<div class="admin-res-list">` + quickLinks.map(l=>`
+          <div class="admin-res-item">
+            <span style="font-size:1.1rem">${l.emoji||"🔗"}</span>
+            <div class="admin-res-info">
+              <div class="admin-res-name">${esc(l.name)}</div>
+              <div class="admin-res-meta">${esc(l.url)}</div>
+            </div>
+            <button class="admin-res-del" onclick="deleteLink('${l.id}')">✕</button>
+          </div>`).join("") + `</div>`;
+  }
+
+  // Files
+  const af = document.getElementById("admin-files-list");
+  if (af) {
+    af.innerHTML = sharedFiles.length === 0
+      ? `<div style="font-size:0.8rem;color:var(--text3)">Sin recursos. Toca + Agregar.</div>`
+      : `<div class="admin-res-list">` + sharedFiles.map(f=>`
+          <div class="admin-res-item">
+            <span style="font-size:1.1rem">${f.emoji||"📄"}</span>
+            <div class="admin-res-info">
+              <div class="admin-res-name">${esc(f.name)}</div>
+              <div class="admin-res-meta">${f.desc||esc(f.url)}</div>
+            </div>
+            <button class="admin-res-del" onclick="deleteFile('${f.id}')">✕</button>
+          </div>`).join("") + `</div>`;
+  }
+
+  // Reservations
+  const rl = document.getElementById("admin-res-list");
+  if (rl) {
+    const entries = Object.entries(reservations).sort((a,b)=>b[1].ts-a[1].ts);
+    if (entries.length === 0) {
+      rl.innerHTML = `<div class="empty-state" style="padding:16px 0"><div class="es-icon">📭</div><div>No hay reservas registradas.</div></div>`;
+    } else {
+      rl.innerHTML = `<div class="admin-res-list">` +
+        entries.map(([key,res])=>{
+          const parts = key.split("|");
+          const dayName = DAYS[parseInt(parts[1])];
+          const period = PERIODS.find(p=>p.id===parts[2]);
+          const date = new Date(res.ts).toLocaleDateString("es-PE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+          return `
+            <div class="admin-res-item">
+              <span class="admin-res-badge">${parts[0]}</span>
+              <div class="admin-res-info">
+                <div class="admin-res-name">${esc(res.teacher)} · ${esc(res.grade)} ${esc(res.section)}</div>
+                <div class="admin-res-meta">${dayName} · ${period?period.time:""} · ${date}</div>
+              </div>
+              <button class="admin-res-del" onclick="openDelete('${key}',event)">✕</button>
+            </div>`;
+        }).join("") + `</div>`;
+    }
+  }
+}
+
+function deleteLink(id) { quickLinks=quickLinks.filter(l=>l.id!==id); save(); renderAdminPanel(); renderLinks(); toast("Link eliminado",""); }
+function deleteFile(id) { sharedFiles=sharedFiles.filter(f=>f.id!==id); save(); renderAdminPanel(); renderFiles(); toast("Recurso eliminado",""); }
+
+// ===== MODALS =====
+function openModal(id) { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); pendingSlotKey=null; }
+
+document.querySelectorAll(".overlay").forEach(ov=>{
+  ov.addEventListener("click", e=>{ if(e.target===ov) ov.classList.remove("open"); });
+});
+
+// ===== TOAST =====
+function toast(msg, type) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast "+(type||"");
+  t.classList.add("show");
+  clearTimeout(t._t);
+  t._t = setTimeout(()=>t.classList.remove("show"), 3000);
+}
+
+// ===== UTIL =====
+function esc(s) { return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+// ===== INIT =====
+load();
+const todayN = new Date().getDay();
+dayIdx = (todayN>=1&&todayN<=5) ? todayN-1 : 0;
+showPage("inicio");
+</script>
+</body>
+</html>
