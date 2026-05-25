@@ -504,39 +504,119 @@ const PERIODS = [
 let adminOn = false;
 let weekOffset = 0;
 let dayIdx = 0;
-let reservations = {};   // slotKey → {teacher,grade,section,ts}
-let disabledSlots = {};  // slotKey → true
+let reservations = {};
+let disabledSlots = {};
 let quickLinks = [];
 let sharedFiles = [];
 let pendingSlotKey = null;
 let pendingDeleteKey = null;
 let pendingAdminCb = null;
 
-// ===== STORAGE =====
-function load() {
-  try {
-    const d = localStorage.getItem("aip_v4");
-    if (d) {
-      const p = JSON.parse(d);
-      reservations = p.r || {};
-      disabledSlots = p.ds || {};
-      quickLinks = p.ql || [];
-      sharedFiles = p.sf || [];
-    }
-  } catch(e) {}
-  if (quickLinks.length === 0) {
-    quickLinks = [
-      {id:uid(),name:"Google",url:"https://www.google.com",emoji:"🔍"},
-      {id:uid(),name:"YouTube",url:"https://www.youtube.com",emoji:"▶️"},
-      {id:uid(),name:"Google Drive",url:"https://drive.google.com",emoji:"📂"},
-      {id:uid(),name:"Classroom",url:"https://classroom.google.com",emoji:"🎓"},
+// ===== FIREBASE =====
+// SDK via CDN (compat mode — works in plain HTML without bundler)
+const FB_CONFIG = {
+  apiKey: "AIzaSyAaIuKsPN7n2uz_IaEw_78SRhQijpI7fyk",
+  authDomain: "aip-tacna.firebaseapp.com",
+  databaseURL: "https://aip-tacna-default-rtdb.firebaseio.com",
+  projectId: "aip-tacna",
+  storageBucket: "aip-tacna.firebasestorage.app",
+  messagingSenderId: "671165570822",
+  appId: "1:671165570822:web:4c6f1d010ad4a8c296c887"
+};
+
+let db = null;  // Firebase database reference
+
+function initFirebase() {
+  return new Promise((resolve) => {
+    // Load Firebase compat SDK scripts dynamically
+    const scripts = [
+      "https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js",
+      "https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"
     ];
-    save();
-  }
+    let loaded = 0;
+    scripts.forEach(src => {
+      const s = document.createElement("script");
+      s.src = src;
+      s.onload = () => { if (++loaded === scripts.length) resolve(); };
+      s.onerror = () => { loaded++; if (loaded === scripts.length) resolve(); };
+      document.head.appendChild(s);
+    });
+  });
 }
-function save() {
-  localStorage.setItem("aip_v4", JSON.stringify({r:reservations,ds:disabledSlots,ql:quickLinks,sf:sharedFiles}));
+
+// ---- SAVE helpers (write to Firebase) ----
+function save(path, data) {
+  if (!db) return;
+  db.ref(path).set(data);
 }
+
+function saveReservation(key, data) {
+  if (!db) return;
+  if (data === null) { db.ref("reservations/" + key).remove(); }
+  else               { db.ref("reservations/" + key).set(data); }
+}
+
+function saveDisabled(key, val) {
+  if (!db) return;
+  if (!val) { db.ref("disabled/" + key).remove(); }
+  else       { db.ref("disabled/" + key).set(true); }
+}
+
+function saveLinks(links) {
+  if (!db) return;
+  db.ref("quickLinks").set(links.length ? links : null);
+}
+
+function saveFiles(files) {
+  if (!db) return;
+  db.ref("sharedFiles").set(files.length ? files : null);
+}
+
+// ---- REAL-TIME LISTENERS ----
+function attachListeners() {
+  // Reservations — live sync
+  db.ref("reservations").on("value", snap => {
+    reservations = snap.val() || {};
+    renderDay();
+    updateFreeCount();
+  });
+
+  // Disabled slots — live sync
+  db.ref("disabled").on("value", snap => {
+    disabledSlots = snap.val() || {};
+    renderDay();
+    updateFreeCount();
+  });
+
+  // Quick links — live sync
+  db.ref("quickLinks").on("value", snap => {
+    const val = snap.val();
+    if (!val) {
+      // First run: seed default links
+      const defaults = [
+        {id:uid(),name:"Google",url:"https://www.google.com",emoji:"🔍"},
+        {id:uid(),name:"YouTube",url:"https://www.youtube.com",emoji:"▶️"},
+        {id:uid(),name:"Google Drive",url:"https://drive.google.com",emoji:"📂"},
+        {id:uid(),name:"Classroom",url:"https://classroom.google.com",emoji:"🎓"},
+      ];
+      db.ref("quickLinks").set(defaults);
+      quickLinks = defaults;
+    } else {
+      quickLinks = Array.isArray(val) ? val : Object.values(val);
+    }
+    renderLinks();
+    if (adminOn) renderAdminPanel();
+  });
+
+  // Shared files — live sync
+  db.ref("sharedFiles").on("value", snap => {
+    const val = snap.val();
+    sharedFiles = val ? (Array.isArray(val) ? val : Object.values(val)) : [];
+    renderFiles();
+    if (adminOn) renderAdminPanel();
+  });
+}
+
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
 
 // ===== NAVIGATION =====
@@ -567,8 +647,13 @@ function weekLabel(off) {
   if (off===1)  return "Próxima semana · "+f(s)+" – "+f(e);
   return f(s)+" – "+f(e);
 }
+// Firebase keys can't contain | . # $ [ ] — use __ as separator
+function slotKey(di, pid) { return weekKey(weekOffset)+"__"+di+"__"+pid; }
+function decodeKey(safeKey) {
+  const p = safeKey.split("__");
+  return {week:p[0], dayIdx:parseInt(p[1]), periodId:p[2]};
+}
 function changeWeek(d) { weekOffset += d; renderSchedule(); }
-function slotKey(di, pid) { return weekKey(weekOffset)+"|"+di+"|"+pid; }
 
 // ===== FREE COUNT =====
 function updateFreeCount() {
@@ -577,7 +662,7 @@ function updateFreeCount() {
   let free = 0;
   teachable.forEach(p => {
     DAYS.forEach((_,di) => {
-      const k = wk+"|"+di+"|"+p.id;
+      const k = wk+"__"+di+"__"+p.id;
       if (!reservations[k] && !disabledSlots[k]) free++;
     });
   });
@@ -661,17 +746,17 @@ function renderDay() {
 function toggleDisable(key, evt) {
   if (!adminOn) return;
   evt && evt.stopPropagation();
+  const safeKey = key.replace(/\|/g,"__");
   if (disabledSlots[key]) {
     delete disabledSlots[key];
+    saveDisabled(safeKey, false);
     toast("✅ Turno habilitado","ok");
   } else {
     if (reservations[key]) { toast("Primero elimina la reserva existente","err"); return; }
     disabledSlots[key] = true;
+    saveDisabled(safeKey, true);
     toast("🚫 Turno deshabilitado","ok");
   }
-  save();
-  renderDay();
-  updateFreeCount();
 }
 
 // ===== RESERVE =====
@@ -701,17 +786,16 @@ function confirmReserva() {
 
   const wk = weekKey(weekOffset);
   const count = Object.entries(reservations).filter(([k,v]) =>
-    k.startsWith(wk+"|") &&
+    k.startsWith(wk+"__") &&
     v.teacher.toLowerCase() === name.toLowerCase() &&
     v.grade === grade && v.section === section
   ).length;
   if (count >= 2) { toast("Ya tienes 2 reservas con ese grado/sección esta semana","err"); return; }
 
-  reservations[pendingSlotKey] = {teacher:name, grade, section, ts:Date.now()};
-  save();
+  const newRes = {teacher:name, grade, section, ts:Date.now()};
+  reservations[pendingSlotKey] = newRes;
+  saveReservation(pendingSlotKey, newRes); // key is already safe (__)
   closeModal("modal-reservar");
-  renderDay();
-  updateFreeCount();
   toast("✅ Reserva confirmada para "+name,"ok");
 }
 
@@ -722,7 +806,7 @@ function openDelete(key, evt) {
   const res = reservations[key];
   if (!res) return;
   pendingDeleteKey = key;
-  const parts = key.split("|");
+  const parts = key.split("__");
   const period = PERIODS.find(p=>p.id===parts[2]);
   document.getElementById("modal-delete-info").innerHTML =
     `<strong>${esc(res.teacher)}</strong> · ${esc(res.grade)} – Sección ${esc(res.section)}<br>${DAYS[parseInt(parts[1])]} · ${period?period.time:""}`;
@@ -732,12 +816,10 @@ function openDelete(key, evt) {
 function confirmDelete() {
   if (!pendingDeleteKey || !reservations[pendingDeleteKey]) return;
   const res = reservations[pendingDeleteKey];
+  const safeKey = pendingDeleteKey.replace(/\|/g,"__");
   delete reservations[pendingDeleteKey];
-  save();
+  saveReservation(safeKey, null); // Firebase listener re-renders
   closeModal("modal-delete");
-  renderDay();
-  renderAdminPanel();
-  updateFreeCount();
   toast("🗑️ Reserva de "+res.teacher+" eliminada","ok");
 }
 
@@ -772,8 +854,8 @@ function confirmAddLink() {
   if (!name) { toast("Escribe el nombre del link","err"); return; }
   if (!url || !url.startsWith("http")) { toast("Ingresa una URL válida (https://...)","err"); return; }
   quickLinks.push({id:uid(),name,url,emoji:emoji||"🔗"});
-  save(); closeModal("modal-add-link");
-  renderLinks(); renderAdminPanel();
+  saveLinks(quickLinks);
+  closeModal("modal-add-link");
   toast("✅ Link agregado","ok");
 }
 
@@ -815,8 +897,8 @@ function confirmAddFile() {
   if (!name) { toast("Escribe el nombre del recurso","err"); return; }
   if (!url || !url.startsWith("http")) { toast("Ingresa una URL válida (https://...)","err"); return; }
   sharedFiles.push({id:uid(),name,url,desc,emoji:emoji||"📄"});
-  save(); closeModal("modal-add-file");
-  renderFiles(); renderAdminPanel();
+  saveFiles(sharedFiles);
+  closeModal("modal-add-file");
   toast("✅ Recurso agregado","ok");
 }
 
@@ -889,7 +971,7 @@ function renderAdminPanel() {
       rl.innerHTML = `<div class="empty-state" style="padding:16px 0"><div class="es-icon">📭</div><div>Sin reservas registradas.</div></div>`;
     } else {
       rl.innerHTML = `<div class="admin-list">`+entries.map(([key,res])=>{
-        const parts=key.split("|");
+        const parts=key.split("__");
         const dayName=DAYS[parseInt(parts[1])];
         const period=PERIODS.find(p=>p.id===parts[2]);
         const date=new Date(res.ts).toLocaleDateString("es-PE",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
@@ -908,7 +990,7 @@ function renderAdminPanel() {
     if (disEntries.length > 0) {
       rl.innerHTML += `<div style="font-size:0.7rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin:14px 0 8px">🚫 Turnos deshabilitados</div>`;
       rl.innerHTML += `<div class="admin-list">`+disEntries.map(key=>{
-        const parts=key.split("|");
+        const parts=key.split("__");
         const dayName=DAYS[parseInt(parts[1])];
         const period=PERIODS.find(p=>p.id===parts[2]);
         return `<div class="admin-item">
@@ -924,8 +1006,8 @@ function renderAdminPanel() {
   }
 }
 
-function deleteLink(id) { quickLinks=quickLinks.filter(l=>l.id!==id); save(); renderAdminPanel(); renderLinks(); toast("Link eliminado",""); }
-function deleteFile(id) { sharedFiles=sharedFiles.filter(f=>f.id!==id); save(); renderAdminPanel(); renderFiles(); toast("Recurso eliminado",""); }
+function deleteLink(id) { quickLinks=quickLinks.filter(l=>l.id!==id); saveLinks(quickLinks); renderAdminPanel(); toast("Link eliminado",""); }
+function deleteFile(id) { sharedFiles=sharedFiles.filter(f=>f.id!==id); saveFiles(sharedFiles); renderAdminPanel(); toast("Recurso eliminado",""); }
 
 // ===== MODALS =====
 function openModal(id) { document.getElementById(id).classList.add("open"); }
@@ -1046,10 +1128,26 @@ function syncLogoPreview() {
 }
 
 // ===== INIT =====
-load();
-loadLogo();
 const todayN = new Date().getDay();
 dayIdx = (todayN>=1&&todayN<=5) ? todayN-1 : 0;
+
+// Show loading state
+document.getElementById("free-count").textContent = "…";
+
+// Boot Firebase, then attach real-time listeners
+initFirebase().then(() => {
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+    db = firebase.database();
+    attachListeners();
+    toast("🔗 Conectado en tiempo real","ok");
+  } catch(e) {
+    console.error("Firebase error:", e);
+    toast("⚠️ Error de conexión — revisa tu internet","err");
+  }
+});
+
+loadLogo();
 showPage("inicio");
 </script>
 </body>
