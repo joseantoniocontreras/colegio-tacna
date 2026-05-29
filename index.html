@@ -268,11 +268,11 @@ body{font-family:"Inter",sans-serif;background:var(--bg);color:var(--text);displ
 
 /* DESKTOP OVERRIDES */
 @media(min-width:768px){
-  body{background:#0d1117;overflow:auto}
-  html,body{height:auto}
+  html,body{height:auto;overflow:auto}
+  body{background:#0d1117}
   .mob-header{display:none}
   .bottom-nav{display:none}
-  .app-body{padding-bottom:0;overflow:visible;flex:1}
+  .app-body{padding-bottom:0;overflow:visible;height:auto;flex:none}
   body{flex-direction:column;align-items:center}
   .desktop-shell{display:flex;flex-direction:column;width:100%;max-width:1200px;background:var(--bg);min-height:100vh;box-shadow:0 0 60px rgba(0,0,0,.5)}
   /* Full-width slider with nav on top */
@@ -727,6 +727,8 @@ function applySiteConfig(){
   setTxt("info-limite",c.infoLimite||"Máx. 2 horas por sección / semana");
   setTxt("normas-section-title",c.normasTitle||"Normas de uso — Aula AIP");
   renderNormas(c.normasText);
+  // Apply logo if saved in Firebase
+  if(c.logoUrl)applyLogo(c.logoUrl);
   // Download zone
   const dlUrl=c.downloadUrl||"";
   setTxt("download-title",c.downloadTitle||"Zona de descargas");
@@ -753,7 +755,12 @@ function showPage(name){
   document.getElementById("page-"+name).classList.add("active");
   const ab=document.getElementById("app-body");if(ab)ab.scrollTop=0;
   if(name==="inicio")updateFreeCount();
-  if(name==="horario")renderSchedule();
+  if(name==="horario"){
+    // Always jump to today (or Monday if weekend)
+    const dn=new Date().getDay();
+    dayIdx=(dn>=1&&dn<=5)?dn-1:0;
+    renderSchedule();
+  }
   if(name==="recursos"){renderLinks();renderFiles();const tip=document.getElementById("homepage-tip");if(tip)tip.style.display=window.innerWidth>=768?"block":"none";}
 }
 // ===================== WEEK =====================
@@ -945,7 +952,7 @@ function openAdminPanel(){
     const map={"d-school-name":"schoolName","d-subtitle":"subtitle","d-contact-name":"contactName","d-contact-phone":"contactPhone","d-download-title":"downloadTitle","d-download-desc":"downloadDesc","d-download-label":"downloadLabel","d-download-url":"downloadUrl","d-info-title":"infoTitle","d-info-horario":"infoHorario","d-info-limite":"infoLimite","d-normas-title":"normasTitle","d-normas-text":"normasText"};
     el.value=siteConfig[map[id]]||"";
   });
-  const lp=document.getElementById("d-logo-preview");if(lp)lp.src=localStorage.getItem("aip_logo_v1")||document.getElementById("mob-logo").src;
+  const lp=document.getElementById("d-logo-preview");if(lp)lp.src=siteConfig.logoUrl||document.getElementById("mob-logo").src;
   ["d-pin-current","d-pin-new","d-pin-confirm"].forEach(id=>document.getElementById(id).value="");
   renderAdminPanel();
   document.getElementById("admin-panel-overlay").classList.add("open");
@@ -996,9 +1003,16 @@ function savePin(){
   ADMIN_PIN=nw;dbSet("adminPin",nw);["d-pin-current","d-pin-new","d-pin-confirm"].forEach(id=>document.getElementById(id).value="");toast("✅ PIN cambiado","ok");
 }
 // ===================== LOGO =====================
-const LOGO_KEY="aip_logo_v1";
-function loadLogo(){const s=localStorage.getItem(LOGO_KEY);if(s)applyLogo(s);}
-function applyLogo(src){["mob-logo","dt-logo","d-logo-preview"].forEach(id=>{const el=document.getElementById(id);if(el)el.src=src;});}
+// Logo stored in Firebase siteConfig.logoUrl (base64)
+// Max size 256px, stored as data URI in Firebase
+function loadLogo(){
+  // Logo is loaded via Firebase siteConfig listener — no localStorage needed
+  // Show default embedded logo until Firebase responds (already in src attr)
+}
+function applyLogo(src){
+  if(!src)return;
+  ["mob-logo","dt-logo","d-logo-preview"].forEach(id=>{const el=document.getElementById(id);if(el)el.src=src;});
+}
 function handleLogoUpload(evt){
   const file=evt.target.files[0];if(!file)return;
   if(!file.type.match(/^image\/(png|webp|svg\+xml)$/)){toast("Solo PNG transparente","err");return;}
@@ -1007,13 +1021,19 @@ function handleLogoUpload(evt){
   reader.onload=e=>{
     const img=new Image();
     img.onload=()=>{
-      let w=img.naturalWidth,h=img.naturalHeight,mx=256;
+      let w=img.naturalWidth,h=img.naturalHeight,mx=300;
       if(w>mx||h>mx){if(w>=h){h=Math.round(h*mx/w);w=mx;}else{w=Math.round(w*mx/h);h=mx;}}
       const cv=document.getElementById("logo-canvas");cv.width=w;cv.height=h;
       cv.getContext("2d").clearRect(0,0,w,h);cv.getContext("2d").drawImage(img,0,0,w,h);
+      // Use PNG to preserve transparency (no black background)
       const url=cv.toDataURL("image/png");
-      try{localStorage.setItem(LOGO_KEY,url);applyLogo(url);if(st)st.textContent=`✅ Logo actualizado (${w}×${h}px)`;toast("✅ Logo actualizado","ok");}
-      catch(er){toast("Error al guardar logo","err");}
+      if(url.length>600000){toast("Imagen demasiado grande, prueba con una de menor resolución","err");return;}
+      // Save to Firebase inside siteConfig
+      siteConfig.logoUrl=url;
+      saveCfg();
+      applyLogo(url);
+      if(st)st.textContent=`✅ Logo guardado en la nube (${w}×${h}px)`;
+      toast("✅ Logo actualizado y guardado en Firebase","ok");
     };img.src=e.target.result;
   };reader.readAsDataURL(file);evt.target.value="";
 }
@@ -1061,7 +1081,6 @@ function esc(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").
 // ===================== INIT =====================
 (()=>{const p=new URLSearchParams(window.location.search).get("page");if(p&&["inicio","horario","recursos","soporte"].includes(p))window._startPage=p;})();
 dayIdx=0;
-loadLogo();
 applySiteConfig();
 initFirebase().then(()=>{
   try{if(!firebase.apps.length)firebase.initializeApp(FB);db=firebase.database();attachListeners();toast("🔗 Conectado","ok");}
